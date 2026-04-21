@@ -18,13 +18,17 @@ jobs:
           java-version: '11'
           distribution: 'temurin'
       
-      - name: Create Android project structure
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+      
+      - name: Create Android project files
         run: |
+          # إنشاء هيكل المجلدات
           mkdir -p app/src/main/java/com/example/flashlight
           mkdir -p app/src/main/res/layout
           mkdir -p app/src/main/res/values
           
-          # Create AndroidManifest.xml
+          # AndroidManifest.xml
           cat > app/src/main/AndroidManifest.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android"
@@ -42,7 +46,7 @@ jobs:
           </manifest>
           EOF
           
-          # Create MainActivity.kt
+          # MainActivity.kt
           cat > app/src/main/java/com/example/flashlight/MainActivity.kt << 'EOF'
           package com.example.flashlight
           
@@ -95,7 +99,7 @@ jobs:
           }
           EOF
           
-          # Create activity_main.xml
+          # activity_main.xml
           cat > app/src/main/res/layout/activity_main.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -133,8 +137,10 @@ jobs:
                   android:paddingBottom="12dp"/>
           </LinearLayout>
           EOF
-          
-          # Create build.gradle
+      
+      - name: Create gradle files
+        run: |
+          # build.gradle (root)
           cat > build.gradle << 'EOF'
           buildscript {
               repositories {
@@ -143,7 +149,6 @@ jobs:
               }
               dependencies {
                   classpath 'com.android.tools.build:gradle:7.4.2'
-                  classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.0'
               }
           }
           allprojects {
@@ -154,15 +159,11 @@ jobs:
           }
           EOF
           
-          # Create app/build.gradle
+          # app/build.gradle
           cat > app/build.gradle << 'EOF'
-          plugins {
-              id 'com.android.application'
-              id 'org.jetbrains.kotlin.android'
-          }
+          apply plugin: 'com.android.application'
           
           android {
-              namespace 'com.example.flashlight'
               compileSdk 33
               
               defaultConfig {
@@ -178,42 +179,29 @@ jobs:
                       minifyEnabled false
                   }
               }
-              compileOptions {
-                  sourceCompatibility JavaVersion.VERSION_11
-                  targetCompatibility JavaVersion.VERSION_11
-              }
-              kotlinOptions {
-                  jvmTarget = '11'
-              }
           }
           
           dependencies {
-              implementation 'androidx.core:core-ktx:1.9.0'
               implementation 'androidx.appcompat:appcompat:1.6.1'
           }
           EOF
           
-          # Create settings.gradle
+          # settings.gradle
           echo 'include ":app"' > settings.gradle
-          
-          # Create gradle wrapper properties
-          mkdir -p gradle/wrapper
-          echo 'distributionUrl=https\://services.gradle.org/distributions/gradle-8.0-bin.zip' > gradle/wrapper/gradle-wrapper.properties
       
-      - name: Grant execute permission
-        run: chmod +x gradlew || true
-      
-      - name: Build APK
+      - name: Build APK using gradle directly
         run: |
-          # Create gradle wrapper if not exists
-          if [ ! -f gradlew ]; then
-            wget -q https://raw.githubusercontent.com/gradle/gradle/v8.0.0/gradlew
-            chmod +x gradlew
-          fi
-          ./gradlew assembleDebug --no-daemon
+          # تحميل gradle مباشرة
+          wget -q https://services.gradle.org/distributions/gradle-8.0-bin.zip
+          unzip -q gradle-8.0-bin.zip
+          
+          # بناء APK
+          ./gradle-8.0/bin/gradle build
       
-      - name: Upload APK
+      - name: Find and upload APK
         uses: actions/upload-artifact@v4
         with:
           name: TripleClickFlashlight
-          path: app/build/outputs/apk/debug/*.apk
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/apk/release/*.apk
