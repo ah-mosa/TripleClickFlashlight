@@ -185,29 +185,33 @@ jobs:
           # settings.gradle
           echo 'include ":app"' > settings.gradle
       
-      - name: Install Android SDK
+      - name: Setup Android SDK
         run: |
-          # تحميل Android SDK Command Line Tools
+          # إزالة المتغيرات المتضاربة
+          unset ANDROID_HOME
+          export ANDROID_SDK_ROOT=$HOME/android-sdk
+          
+          # تحميل Android SDK
           wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
           unzip -q commandlinetools-linux-11076708_latest.zip
-          mkdir -p android-sdk/cmdline-tools
-          mv cmdline-tools android-sdk/cmdline-tools/latest
-          export ANDROID_SDK_ROOT=$(pwd)/android-sdk
-          export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin
+          mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
+          mv cmdline-tools $ANDROID_SDK_ROOT/cmdline-tools/latest
+          
+          export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools
           
           # قبول التراخيص
-          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null 2>&1 || true
           
-          # تثبيت أدوات البناء
-          sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.0" > /dev/null 2>&1
+          # تثبيت المتطلبات
+          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.0" > /dev/null 2>&1
           
-          # حفظ المتغيرات للخطوات التالية
-          echo "ANDROID_SDK_ROOT=$(pwd)/android-sdk" >> $GITHUB_ENV
-          echo "PATH=$PATH:$(pwd)/android-sdk/cmdline-tools/latest/bin:$(pwd)/android-sdk/platform-tools" >> $GITHUB_ENV
+          # حفظ المتغيرات
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          echo "PATH=$PATH" >> $GITHUB_ENV
       
       - name: Build APK
         run: |
-          # تحميل gradle
+          # تحميل Gradle
           wget -q https://services.gradle.org/distributions/gradle-8.0-bin.zip
           unzip -q gradle-8.0-bin.zip
           
