@@ -185,28 +185,31 @@ jobs:
           # settings.gradle
           echo 'include ":app"' > settings.gradle
       
-      - name: Setup Android SDK
+      - name: Setup Android SDK (Clean Environment)
         run: |
-          # إزالة المتغيرات المتضاربة
+          # إزالة المتغيرات المتضاربة بشكل كامل
           unset ANDROID_HOME
-          export ANDROID_SDK_ROOT=$HOME/android-sdk
+          unset ANDROID_SDK_ROOT
+          
+          # استخدام مسار واحد وثابت
+          export ANDROID_HOME=$HOME/android-sdk
           
           # تحميل Android SDK
           wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
           unzip -q commandlinetools-linux-11076708_latest.zip
-          mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
-          mv cmdline-tools $ANDROID_SDK_ROOT/cmdline-tools/latest
+          mkdir -p $ANDROID_HOME/cmdline-tools
+          mv cmdline-tools $ANDROID_HOME/cmdline-tools/latest
           
-          export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools
+          export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
           
           # قبول التراخيص
-          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null 2>&1 || true
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null 2>&1 || true
           
           # تثبيت المتطلبات
-          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.0" > /dev/null 2>&1
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.0" > /dev/null 2>&1
           
-          # حفظ المتغيرات
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          # حفظ المتغيرات - استخدام ANDROID_HOME فقط (الطريقة الموصى بها)
+          echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
           echo "PATH=$PATH" >> $GITHUB_ENV
       
       - name: Build APK
@@ -215,8 +218,8 @@ jobs:
           wget -q https://services.gradle.org/distributions/gradle-8.0-bin.zip
           unzip -q gradle-8.0-bin.zip
           
-          # بناء APK
-          ./gradle-8.0/bin/gradle build
+          # بناء APK مع تعيين SDK بشكل صريح
+          ./gradle-8.0/bin/gradle build -Dandroid.home=$ANDROID_HOME
       
       - name: Upload APK
         uses: actions/upload-artifact@v4
